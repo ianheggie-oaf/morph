@@ -1,8 +1,20 @@
 ---
 - name: Add the Percona repository key
-  apt_key:
-    id: 8507EFA5
-    keyserver: keyserver.ubuntu.com
+  ansible.builtin.get_url:
+    url: "https://repo.percona.com/apt/percona-release_latest.{{ ubuntu_codename }}_all.deb"
+    dest: /tmp/percona-release.deb
+  become: true
+
+- name: Install Percona repository package
+  apt:
+    deb: /tmp/percona-release.deb
+    state: present
+  become: true
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  become: true
 
 - name: Add the Percona sources
   apt_repository: repo='deb https://repo.percona.com/apt {{ ubuntu_codename }} main'
