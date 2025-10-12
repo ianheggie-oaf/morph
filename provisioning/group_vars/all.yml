@@ -9,6 +9,7 @@ github_users:
 ruby_version: "{{ lookup('file', '../.ruby-version') | trim }}"
 #python_version: "{{ lookup('file', '../.python-version') | trim }}"
 bundler_version: 2.2.33
+ubuntu_codename: focal
 apt_packages:
   - cmake
   - language-pack-en
