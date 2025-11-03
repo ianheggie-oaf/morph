@@ -244,13 +244,34 @@ set Environment variable: DISABLE_SPRING=1
 
 ## Deploying to production
 
-This section will not be relevant to most people. It will however be relevant if you're deploying to a production server.
+This section will not be relevant to most people. It will, however, be relevant if you're deploying to a production
+server.
 
 To deploy morph.io to production, normally you'll just want to deploy using Capistrano:
 
-    cap production deploy
+    bundle exec cap production deploy
 
 Read the [provisioning README](provisioning/README.md) for details of how to provision from updated ansible playbooks.
+
+## Deploying to local Vagrant VM
+
+This section will not be relevant to most people. It will, however, be relevant if you're testing provisioning and deployment.
+
+Start the vagrant VM which will also provision the VM (current provisioning the discourse service fails - this is a known issue):
+
+    vagrant up
+
+Make sure the changes you wish to deploy are committed to git as it will deploy the .git dir, not the local source.
+
+To deploy run:
+
+    bundle exec cap local deploy:check  # creates the local directory structure
+    bundle exec cap local deploy:migrate
+    bundle exec cap local deploy
+
+
+Read the [provisioning README](provisioning/README.md) for details of how to provision from updated ansible playbooks.
+
 
 # How to contribute
 

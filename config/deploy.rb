@@ -3,6 +3,15 @@ set :repo_url, 'https://github.com/openaustralia/morph.git'
 
 set :rvm_ruby_version, '2.7.6'
 
+# Show full output from failed commands
+set :format_options, command_output: true, log_file: 'log/capistrano.log'
+
+# Force rake to use the same bundle path
+set :bundle_bins, %w(gem rake rails sidekiq sidekiqctl)
+set :bundle_flags, '--quiet'
+set :bundle_without, %w(development test).join(' ')
+set :bundle_path, -> { shared_path.join('bundle') }
+
 # ask :branch, proc { `git rev-parse --abbrev-ref HEAD`.chomp }
 
 set :deploy_to, '/var/www'
