@@ -1,8 +1,8 @@
 ---
 - name: "Set default ruby version"
-  command: /bin/bash -lc 'rvm alias create default ruby-{{ ruby_version }}'
+  command: /bin/bash -lc 'mise use --global ruby@{{ ruby_version }}'
   become_user: "{{ item }}"
-  loop: "{{ rvm_users }}"
+  loop: "{{ mise_users }}"
   # Disable use of PTY as it sometimes hangs
   async: 600
   poll: 2

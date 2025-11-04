@@ -1,16 +1,23 @@
 set :application, 'morph'
 set :repo_url, 'https://github.com/openaustralia/morph.git'
 
-set :rvm_ruby_version, '2.7.6'
+set :ruby_version, -> { File.read(File.expand_path('../../.ruby-version', __dir__)).chomp }
 
 # Show full output from failed commands
 set :format_options, command_output: true, log_file: 'log/capistrano.log'
 
 # Force rake to use the same bundle path
-set :bundle_bins, %w(gem rake rails sidekiq sidekiqctl)
-set :bundle_flags, '--quiet'
+# set :bundle_bins, %w(gem rake rails sidekiq sidekiqctl)
+# set :bundle_flags, '--quiet'
 set :bundle_without, %w(development test).join(' ')
 set :bundle_path, -> { shared_path.join('bundle') }
+
+set :default_env, {
+  'PATH' => '$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH'
+  # 'MISE_DATA_DIR' => '$HOME/.local/share/mise'
+}
+# Fix honeybadger not found
+SSHKit.config.command_map[:honeybadger] = "bundle exec honeybadger"
 
 # ask :branch, proc { `git rev-parse --abbrev-ref HEAD`.chomp }
 
@@ -27,6 +34,26 @@ set :linked_dirs, %w{db/scrapers public/sitemaps tmp/pids log}
 
 # set :default_env, { path: "/opt/ruby/bin:$PATH" }
 # set :keep_releases, 5
+
+# In deploy.rb
+namespace :mise do
+  desc "Ensure mise is available"
+  task :check do
+    on roles(:all) do
+      execute :mise, 'version'
+    end
+  end
+
+  task :ensure_ruby do
+    on roles(:all) do
+      within release_path do
+        execute :mise, 'install'
+      end
+    end
+  end
+end
+
+before 'bundler:install', 'mise:ensure_ruby'
 
 namespace :deploy do
 

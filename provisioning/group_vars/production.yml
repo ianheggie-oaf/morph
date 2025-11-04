@@ -1,5 +1,5 @@
 ---
-rvm_users:
+mise_users:
   - 'deploy'
 mitmproxy_secret: !vault |
           $ANSIBLE_VAULT;1.1;AES256

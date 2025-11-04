@@ -2,7 +2,7 @@
 # Configuration for developing using local staging server
 # Note: this is NOT the code development environment run up using docker compose!
 
-rvm_users:
+mise_users:
   - 'deploy'
   - 'vagrant'
 mitmproxy_secret: !vault |

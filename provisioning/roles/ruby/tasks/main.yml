@@ -1,80 +1,75 @@
 ---
-- name: Ensure curl is installed
-  apt: pkg=curl
-
-- name: "Install gpg key for rvm_users"
-  shell: gpg --keyserver keyserver.ubuntu.com --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
-  become_user: "{{ item }}"
-  loop: "{{ rvm_users }}"
-
-# TODO: Maybe install rvm by installing the package ruby-rvm?
-- name: "Ensure rvm installed for rvm_users"
-  shell: "curl -sSL https://get.rvm.io | bash -s stable creates=/home/{{ item }}/.rvm"
-  become_user: "{{ item }}"
-  loop: "{{ rvm_users }}"
-
-- name: "Ensure ruby dependencies are installed"
+- name: "Ensure ruby build dependencies are installed"
   apt:
     pkg:
       - autoconf
       - automake
       - bison
+      - curl
       - g++
       - gawk
       - libtool
       - make
       - patch
       - pkg-config
+      - libssl-dev
+      - libreadline-dev
+      - zlib1g-dev
+      - libyaml-dev
+      - libffi-dev
+
+- name: Remove RVM from system
+  import_tasks: remove_rvm.yml
+
+- name: "Install mise for mise_users"
+  shell: "curl https://mise.run | sh"
+  args:
+    creates: "/home/{{ item }}/.local/bin/mise"
+  become_user: "{{ item }}"
+  loop: "{{ mise_users }}"
+
+- name: "Add mise to shell rc files"
+  lineinfile:
+    path: "/home/{{ item }}/.bashrc"
+    line: 'eval "$(~/.local/bin/mise activate bash)"'
+    create: yes
+  become_user: "{{ item }}"
+  loop: "{{ mise_users }}"
 
 - name: "Ensure gem dependencies are installed"
   apt:
     pkg: "{{ apt_packages }}"
 
-- name: "Install ruby-{{ ruby_version }} for rvm_users (with binary)"
-  command: "/bin/bash -l -c 'rvm install ruby-{{ ruby_version }} --autolibs=read-fail'"
+- name: "Install ruby-{{ ruby_version }} for mise_users"
+  command: "/bin/bash -lc 'mise install ruby@{{ ruby_version }}'"
   args:
-    creates: "/home/{{ item }}/.rvm/rubies/ruby-{{ ruby_version }}"
+    creates: "/home/{{ item }}/.local/share/mise/installs/ruby/{{ ruby_version }}"
   become_user: "{{ item }}"
-  loop: "{{ rvm_users }}"
-  async: 300
-  poll: 5
-  register: rvm_install
-  ignore_errors: yes
-  notify: "Set default ruby version"
-
-- name: "Install ruby-{{ ruby_version }} for rvm_users (fallback compile from source)"
-  command: "/bin/bash -l -c 'rvm install ruby-{{ ruby_version }} --disable-binary --autolibs=read-fail'"
-  args:
-    creates: "/home/{{ item.item }}/.rvm/rubies/ruby-{{ ruby_version }}"
-  become_user: "{{ item.item }}"
-  loop: "{{ rvm_install.results }}"
+  loop: "{{ mise_users }}"
   async: 1800
   poll: 5
-  when: item.failed | default(false)
   notify: "Set default ruby version"
 
-- name: Check if bundler is installed for rvm_users
-  command: /bin/bash -lc "rvm ruby-{{ ruby_version }} do gem list bundler -i -v {{ bundler_version }}"
+- name: Check if bundler is installed for mise_users
+  command: /bin/bash -lc "mise exec ruby@{{ ruby_version }} -- gem list bundler -i -v {{ bundler_version }}"
   become_user: "{{ item }}"
   register: bundler_check
   failed_when: false
   changed_when: false
-  loop: "{{ rvm_users }}"
-  # Disable use of PTY as it sometimes hangs
+  loop: "{{ mise_users }}"
   async: 60
   poll: 2
 
-- name: Install bundler for ruby {{ ruby_version }} for rvm_users
-  command: /bin/bash -lc "rvm ruby-{{ ruby_version }} do gem install bundler --version {{ bundler_version }}"
+- name: Install bundler for ruby {{ ruby_version }} for mise_users
+  command: /bin/bash -lc "mise exec ruby@{{ ruby_version }} -- gem install bundler --version {{ bundler_version }}"
   become_user: "{{ item.item }}"
   when: item.rc != 0
   loop: "{{ bundler_check.results }}"
-  # Disable use of PTY as it sometimes hangs
   async: 300
   poll: 2
 
-- name: Create .bash_aliases for rvm_users
-  ansible.builtin.lineinfile:
+- name: Create .bash_aliases for mise_users
+  lineinfile:
     path: "/home/{{ item.0 }}/.bash_aliases"
     line: "{{ item.1 }}"
     create: yes
@@ -82,4 +77,5 @@
     group: "{{ item.0 }}"
     mode: '0644'
   tags: 'bash_aliases'
-  loop: "{{ rvm_users | product(bash_alias_lines) | list }}"
+  loop: "{{ mise_users | product(bash_alias_lines) | list }}"
+
